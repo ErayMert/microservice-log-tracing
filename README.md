@@ -137,7 +137,7 @@ You can start these tools with the following command:
 </dependency>
 ```
 
-## Logback-spring.xml dosyası
+## Logback-spring.xml File
 
 * I configured the file as below since I'm tracing logs in Loki datasource in Grafana. This file should be present in every project.
 * The label sections correspond to the parts used for searching in Loki.
@@ -309,6 +309,8 @@ public class KafkaConsumerConfiguration {
 
 ![zipkin_trace_log](Images/zipkin_trace_log.png)
 
+
+### Happy coding, and may your microservices journey be filled with successful deployments and seamless operations!"
 
 
 
