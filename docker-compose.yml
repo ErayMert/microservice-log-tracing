@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  grafana:
+    image: grafana/grafana-enterprise:latest
+    volumes:
+      - ./docker/grafana/datasources.yml:/etc/grafana/provisioning/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    ports:
+      - "3000:3000"
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+
+  zookeeper:
+    image: docker.io/bitnami/zookeeper:3.8
+    restart: always
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ALLOW_ANONYMOUS_LOGIN: yes
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+  loki:
+    image: grafana/loki:main
+    command: [ "-config.file=/etc/loki/local-config.yaml" ]
+    ports:
+      - "3100:3100"
+
+  tempo:
+    image: grafana/tempo:2.2.4
+    command: [ "--target=all", "--storage.trace.backend=local", "--storage.trace.local.path=/var/tempo", "--auth.enabled=false" ]
+    ports:
+      - "14250:14250"
+      - "4317:4317"
+    depends_on:
+      - loki

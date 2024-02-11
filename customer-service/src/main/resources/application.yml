@@ -1,0 +1,32 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: customer-service
+  datasource:
+    url: jdbc:h2:mem:testdb
+    username: sa
+    password:
+    driverClassName: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+  h2:
+    console.enabled: true
+
+kafka:
+  topic:
+    order: order
+  address: localhost:9092
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: "http://localhost:9411/api/v2/spans" # spring boot 3 de uzak sunucu adresini boyle ekliyoruz
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
