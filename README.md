@@ -1,10 +1,9 @@
 
 # Microservice micrometer log tracing
 
-Microservice mimarisiyle yazılmış projelerde log takibi yapabilmek için kullanılan kütüphaneleri ve bazı monitoring tool larını anlatmaya çalıştım.
+I attempted to explain the libraries and some monitoring tools used to trace logs in projects written with a microservices architecture.
 
-
-## Kullanılan Teknolojiler
+## Technologies Used
 
 * Java 17
 * Springboot 3
@@ -17,25 +16,25 @@ Microservice mimarisiyle yazılmış projelerde log takibi yapabilmek için kull
 * Mapstruct
 * Micrometer
 
-## Mimari diagram
+## Architecture Diagram
 
 ![architecture](Images/arch.png)
 
-## Bilgisayarınızda Çalıştırmak için
+## Running on Your Computer
 
-Projeyi klonlayın
+Clone the project
 
 ```bash
 https://github.com/ErayMert/microservice-log-tracing.git
 ```
 
-Terminal ile proje dizinine gidin
+Navigate to the project directory in the terminal
 
 ```bash
   cd microservice-log-tracing
 ```
 
-* docker-compose.yml dosyasında kafka, grafana, zipkin, zookeper, tempo, loki ayarları yapılmıştır.
+* The docker-compose.yml file contains configurations for Kafka, Grafana, Zipkin, Zookeeper, Tempo, and Loki.
 
 ```yml
 version: '3.8'
@@ -94,15 +93,15 @@ services:
       - loki
 ```
 
-Aşağıdaki komut ile bu tool ları çalıştırabiliriz
+You can start these tools with the following command:
 
 ```docker
   docker-compose up -d
 ```
 
-## Eklenen kütüphaneler
+## Added Libraries
 
-* Brave ise dağıtılmış sistemlerde izleme yapmayı sağlayan bir kütüphanedir. Özellikle microservice mimarileri gibi karmaşık sistemlerde, bir isteğin izini sürmek ve izlemek için kullanılır. İsteklerin birbirleriyle etkileşimlerini ve performanslarını izlemek için kullanılan bu kütüphane, ağ geçitlerinden geçen istekleri takip eder ve bu isteklerin nasıl yanıtlandığını görmenize olanak tanır.
+* Brave is a library that enables tracing in distributed systems. Especially useful in complex systems like microservices architectures, it tracks requests passing through gateways, allowing you to see how requests interact with each other and how they are responded to.
 
 ```xml
 <dependency>
@@ -111,7 +110,7 @@ Aşağıdaki komut ile bu tool ları çalıştırabiliriz
 </dependency>
 ```
 
-* Bu bağımlılık, OpenFeign kullanan bir uygulamada metriklerin toplanmasını ve Micrometer aracılığıyla izlenmesini sağlar.
+* This dependency allows for the collection of metrics and monitoring via Micrometer in applications using OpenFeign.
 
 ```xml
 <dependency>
@@ -120,7 +119,7 @@ Aşağıdaki komut ile bu tool ları çalıştırabiliriz
 </dependency>
 ```
 
-* Zipkin, dağıtılmış sistemlerde izleme ve hata ayıklama sağlayan bir izleme sistemi ve sunucusudur. zipkin-reporter-brave bağımlılığı, Brave kütüphanesi aracılığıyla Zipkin'e rapor göndermek için gerekli olan reporter işlevselliğini sağlar. Bu sayede uygulamanızdaki izlemeyi Zipkin üzerinden gerçekleştirebilir ve uygulamanızın performansını ve işlevselliğini daha iyi analiz edebilirsiniz.
+* Zipkin is a tracing system and server that provides tracing and debugging capabilities in distributed systems. The zipkin-reporter-brave dependency provides the necessary reporter functionality to send reports to Zipkin via the Brave library, enabling tracing in your application through Zipkin.
 
 ```xml
 <dependency>
@@ -128,7 +127,7 @@ Aşağıdaki komut ile bu tool ları çalıştırabiliriz
     <artifactId>zipkin-reporter-brave</artifactId>
 </dependency>
 ```
-* Grafana Labs tarafından geliştirilmiştir. loki-logback-appender bağımlılığı, Logback üzerinden günlük mesajlarını Loki'ye yönlendirmenize olanak tanır. Böylece uygulamanızın günlüklerini Loki'de saklayabilir ve Grafana ile görselleştirebilirsiniz.
+* Developed by Grafana Labs. The loki-logback-appender dependency allows for redirecting log messages from Logback to Loki. This enables storing your application's logs in Loki and visualizing them with Grafana.
 
 ```xml
 <dependency>
@@ -140,9 +139,8 @@ Aşağıdaki komut ile bu tool ları çalıştırabiliriz
 
 ## Logback-spring.xml dosyası
 
-* Ben logları grafana da loki datasource üzerinde takip ettiğim için bu dosyayı aşağıdaki gibi düzenledim.
-Bu dosya her projede olmalı
-* Burada label kısımları aslında loki üzerinde arama yapmanız sağlayan kısımlara denk geliyor.
+* I configured the file as below since I'm tracing logs in Loki datasource in Grafana. This file should be present in every project.
+* The label sections correspond to the parts used for searching in Loki.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -172,17 +170,17 @@ Bu dosya her projede olmalı
 </configuration>
 ```
 
-## application.yml dosyasındaki configürasyonlar
+## Configuration in application.yml
 
-* Aşağıdaki ayar izleme verisinin tamamının toplanacağını belirtir. Yani, her bir isteğin izlenmesi için %100 olasılıkla izlenir ve kaydedilir.
+* The following setting indicates that all tracing data will be collected. That is, each request is traced and stored with a 100% probability.
 ``` yml
 management:
   tracing:
     sampling:
       probability: 1.0
 ```
-* Bu ayar ise zipkin configürasyonunu sağlar ve spring boot 3 de bu şekilde uzak sunucu adresine bağlanabilmesini sağlıyoruz
-* Default olarak "http://localhost:9411/api/v2/spans" bu endpoint ayarlı yazmamıza gerek yok fakat başla bir sunucu için yazmamız gerekir
+* This setting provides Zipkin configuration and allows Spring Boot 3 to connect to a remote server.
+* By default `http://localhost:9411/api/v2/spans`, we don't need to specify the endpoint, but we need to for a standalone server.
 
 ``` yml
 management:
@@ -190,7 +188,7 @@ management:
     tracing:
       endpoint: "http://localhost:9411/api/v2/spans"
 ```
-* Aşağıdaki config ile çıktı olarak traceId ve spanId nin nasıl yansıyacağını belirtir.
+* The following config specifies how the traceId and spanId will be reflected in the output.
 
 ``` yml
 logging:
@@ -198,15 +196,15 @@ logging:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
 ```
 
-* Console daki çıktı aşağıdaki gibidir. 
+* The output in the console looks like this: 
 
 ![trace_span](Images/trace_span.png)
 
-## Kafka için micrometer configüsrasyonu
+## Micrometer Configuration for Kafka
 
-* Producer için  
-    * `kafkaTemplate.setMicrometerEnabled(true);`
-    * `kafkaTemplate.setObservationEnabled(true);` ayarı yapılır.
+* For the Producer: 
+    * Set `kafkaTemplate.setMicrometerEnabled(true);`
+    * Set `kafkaTemplate.setObservationEnabled(true);`
   
 ```java
 @RequiredArgsConstructor
@@ -237,11 +235,11 @@ public class ProducerConfiguration {
 }
 ```
 
-* Consumer config class ında ise
-    * `factory.getContainerProperties().setObservationEnabled(true);`
-    * `factory.getContainerProperties().setMicrometerEnabled(true);`
-    * `factory.getContainerProperties().setLogContainerConfig(true);`
-    * `factory.getContainerProperties().setCommitLogLevel(LogIfLevelEnabled.Level.INFO);` ayarı yapılır.
+* For the Consumer:
+    * Set `factory.getContainerProperties().setObservationEnabled(true);`
+    * Set `factory.getContainerProperties().setMicrometerEnabled(true);`
+    * Set `factory.getContainerProperties().setLogContainerConfig(true);`
+    * Set `factory.getContainerProperties().setCommitLogLevel(LogIfLevelEnabled.Level.INFO);`
 
 ```java
 @Slf4j
@@ -279,36 +277,35 @@ public class KafkaConsumerConfiguration {
 }
 ```
 
-## Uygulama üzerinde deneme yapalım
+## Trying it out on the Application
 
-* Swagger üzerinden ilk olarak bir customer ve bir product yaratalım.
+* First, let's create a customer and a product using Swagger.
 
 ![create_customer](Images/create_customer.png)
 ![create_product](Images/product_create.png)
 
-* Daha sonra customer bir order create edecek ve customer service burada kafka üzerinden order servis ile haberleşerek bir order oluşturur.
-
+* Then, the customer will create an order, and the customer service will communicate with the order service via Kafka to create an order.
 ![create_order](Images/create_order.png)
 
-### Grafana ile log tracing
+### Log Tracing with Grafana
 
-* Grafanaya bağlanmak için <http://localhost:3000> adresini kullanıyoruz.
-* logback-spring.xml configürasyonun loki datasource üzerindeki görünümü aşağıdaki gibidir.
+* Connect to Grafana using the address <http://localhost:3000>
+* The configuration of logback-spring.xml on Loki datasource in Grafana looks like this:
 
 ![loki label](Images/loki_label.png)
 
-* Yukarıda denediğimiz order create işlemine grafana üzerinde gözlemleyelim.
-  * İlk olarak customer servisinden bir traceId alacağız ve daha sonra bu traceId ile loki üzerinde arama yapıp bu traceId ye ait tüm logları gözlemleyeceğiz.
+* Let's observe the order creation we tried above on Grafana.
+  * First, we'll obtain a traceId from the customer service, and then we'll search on Loki using this traceId to observe all logs associated with this traceId.
 
 ![create_order_log](Images/create_order_log.png)
-  * Buradan alacağımız traceId ile arama yapalım ve bu traceId ye sahip tüm servis loglarını görmüş olacağız.
+  * Let's search with the traceId we obtained, and we'll see all service logs associated with this traceId.
 
 ![create_order_trace_log](Images/grafana_trace_log.png)
 
-### Zipkin
-* Zipkine bağlanmak için <http://localhost:9411> adresini kullanıyoruz. 
+### Log Tracing with Zipkin
+* To connect to Zipkin, use the address <http://localhost:9411>
 
-* Yukarıdaki order create isteğini zipkinde gözlemlersek aşağıdaki gibi bir çıktı verir
+* If we observe the order creation request on Zipkin, we'll see output like this:
 
 ![zipkin_trace_log](Images/zipkin_trace_log.png)
 
