@@ -17,19 +17,22 @@ Microservice mimarisiyle yazılmış projelerde log takibi yapabilmek için kull
 * Mapstruct
 * Micrometer
 
+## Mimari diagram
+
+![architecture](Images/arch.png)
 
 ## Bilgisayarınızda Çalıştırmak için
 
 Projeyi klonlayın
 
 ```bash
-  https://github.com/ErayMert/microservice-micrometer-tracing.git
+https://github.com/ErayMert/microservice-log-tracing.git
 ```
 
-Proje dizinine gidin
+Terminal ile proje dizinine gidin
 
 ```bash
-  cd microservice-micrometer-tracing
+  cd microservice-log-tracing
 ```
 
 * docker-compose.yml dosyasında kafka, grafana, zipkin, zookeper, tempo, loki ayarları yapılmıştır.
@@ -168,20 +171,149 @@ Bu dosya her projede olmalı
 
 </configuration>
 ```
-### Grafana
+
+## application.yml dosyasındaki configürasyonlar
+
+* Aşağıdaki ayar izleme verisinin tamamının toplanacağını belirtir. Yani, her bir isteğin izlenmesi için %100 olasılıkla izlenir ve kaydedilir.
+``` yml
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+```
+* Bu ayar ise zipkin configürasyonunu sağlar ve spring boot 3 de bu şekilde uzak sunucu adresine bağlanabilmesini sağlıyoruz
+* Default olarak "http://localhost:9411/api/v2/spans" bu endpoint ayarlı yazmamıza gerek yok fakat başla bir sunucu için yazmamız gerekir
+
+``` yml
+management:
+  zipkin:
+    tracing:
+      endpoint: "http://localhost:9411/api/v2/spans"
+```
+* Aşağıdaki config ile çıktı olarak traceId ve spanId nin nasıl yansıyacağını belirtir.
+
+``` yml
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+```
+
+* Console daki çıktı aşağıdaki gibidir. 
+
+![trace_span](Images/trace_span.png)
+
+## Kafka için micrometer configüsrasyonu
+
+* Producer için  
+    * `kafkaTemplate.setMicrometerEnabled(true);`
+    * `kafkaTemplate.setObservationEnabled(true);` ayarı yapılır.
+  
+```java
+@RequiredArgsConstructor
+@Configuration
+public class ProducerConfiguration {
+
+    private final KafkaProperties kafkaProperties;
+
+    @Bean
+    public ProducerFactory<String, Object> producerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getAddress());
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, Object> kafkaTemplate() {
+
+        KafkaTemplate<String, Object> kafkaTemplate = new KafkaTemplate<>(producerFactory());
+        kafkaTemplate.setMicrometerEnabled(true);
+        kafkaTemplate.setObservationEnabled(true);
+
+        return kafkaTemplate;
+    }
+}
+```
+
+* Consumer config class ında ise
+    * `factory.getContainerProperties().setObservationEnabled(true);`
+    * `factory.getContainerProperties().setMicrometerEnabled(true);`
+    * `factory.getContainerProperties().setLogContainerConfig(true);`
+    * `factory.getContainerProperties().setCommitLogLevel(LogIfLevelEnabled.Level.INFO);` ayarı yapılır.
+
+```java
+@Slf4j
+@RequiredArgsConstructor
+@Configuration
+public class KafkaConsumerConfiguration {
+
+    private final KafkaProperties kafkaProperties;
+
+    @Bean
+    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, Object>> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+
+        factory.getContainerProperties().setObservationEnabled(true);
+        factory.getContainerProperties().setMicrometerEnabled(true);
+        factory.getContainerProperties().setLogContainerConfig(true);
+        factory.getContainerProperties().setCommitLogLevel(LogIfLevelEnabled.Level.INFO);
+        factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(consumerConfigs()));
+        return factory;
+    }
+
+    @Bean
+    public Map<String, Object> consumerConfigs() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getAddress());
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, kafkaProperties.getGroupId());
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        return props;
+    }
+
+}
+```
+
+## Uygulama üzerinde deneme yapalım
+
+* Swagger üzerinden ilk olarak bir customer ve bir product yaratalım.
+
+![create_customer](Images/create_customer.png)
+![create_product](Images/product_create.png)
+
+* Daha sonra customer bir order create edecek ve customer service burada kafka üzerinden order servis ile haberleşerek bir order oluşturur.
+
+![create_order](Images/create_order.png)
+
+### Grafana ile log tracing
 
 * Grafanaya bağlanmak için <http://localhost:3000> adresini kullanıyoruz.
-* Yukarıdaki configürasyonun loki datasource üzerindeki görünümü aşağıdaki gibidir.
+* logback-spring.xml configürasyonun loki datasource üzerindeki görünümü aşağıdaki gibidir.
 
 ![loki label](Images/loki_label.png)
 
+* Yukarıda denediğimiz order create işlemine grafana üzerinde gözlemleyelim.
+  * İlk olarak customer servisinden bir traceId alacağız ve daha sonra bu traceId ile loki üzerinde arama yapıp bu traceId ye ait tüm logları gözlemleyeceğiz.
+
+![create_order_log](Images/create_order_log.png)
+  * Buradan alacağımız traceId ile arama yapalım ve bu traceId ye sahip tüm servis loglarını görmüş olacağız.
+
+![create_order_trace_log](Images/grafana_trace_log.png)
+
 ### Zipkin
-Zipkine bağlanmak için <http://localhost:9411> adresini kullanıyoruz.
+* Zipkine bağlanmak için <http://localhost:9411> adresini kullanıyoruz. 
+
+* Yukarıdaki order create isteğini zipkinde gözlemlersek aşağıdaki gibi bir çıktı verir
+
+![zipkin_trace_log](Images/zipkin_trace_log.png)
 
 
-### Kafka için micrometer configüsrasyonu
 
-* Hem producer da hem consumer da 
 
 
 
