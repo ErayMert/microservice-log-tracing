@@ -5,6 +5,7 @@ import com.demo.model.order.event.OrderEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -15,6 +16,7 @@ public class OrderEventProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final KafkaProperties kafkaProperties;
 
+    @Async
     public void sendCreateOrder(OrderEvent orderEvent) {
         kafkaTemplate.send(kafkaProperties.getTopic().getOrder(), orderEvent);
         log.info("send create order: {} ", orderEvent.toString());
