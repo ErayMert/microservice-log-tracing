@@ -303,7 +303,8 @@ public class AsyncTraceContextConfig implements AsyncConfigurer {
   @Override
   public Executor getAsyncExecutor() {
     return ContextExecutorService.wrap(
-            taskExecutor.getThreadPoolExecutor(), ContextSnapshot::captureAll);
+            taskExecutor.getThreadPoolExecutor(),
+                    ContextSnapshotFactory.builder().build()::captureAll);
   }
 }
 ```
@@ -321,7 +322,8 @@ import org.springframework.core.task.TaskDecorator;
 public class AsyncConfig {
   @Bean
   public TaskDecorator otelTaskDecorator() {
-    return (runnable) -> ContextSnapshot.captureAll(new Object[0]).wrap(runnable);
+    return (runnable) -> return (runnable) -> ContextSnapshotFactory.builder().build()
+                                                .captureAll((new Object[0])).wrap(runnable);
   }
 
   @Bean("asyncExecutorPool1")
