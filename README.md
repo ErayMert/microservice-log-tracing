@@ -277,6 +277,76 @@ public class KafkaConsumerConfiguration {
 }
 ```
 
+## Micrometer Configuration for Async
+
+* By design you can only have one AsyncConfigurer, thus only one executor pool is
+
+```java
+import io.micrometer.context.ContextExecutorService;
+import io.micrometer.context.ContextSnapshot;
+import java.util.concurrent.Executor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+@Configuration(proxyBeanMethods = false)
+@RequiredArgsConstructor
+public class AsyncTraceContextConfig implements AsyncConfigurer {
+
+  // NOTE: By design you can only have one AsyncConfigurer, thus only one executor pool is
+  // configurable.
+  @Qualifier("taskExecutor") // if you have more than one task executor pools
+  private final ThreadPoolTaskExecutor taskExecutor;
+
+  @Override
+  public Executor getAsyncExecutor() {
+    return ContextExecutorService.wrap(
+            taskExecutor.getThreadPoolExecutor(), ContextSnapshot::captureAll);
+  }
+}
+```
+* If you have more than one executor pools and wants to add tracing to all, use the TaskDecorator with ContextSnapshot.wrap():
+
+```java
+import io.micrometer.context.ContextSnapshot;
+import java.util.concurrent.Executor;
+import org.springframework.boot.task.TaskExecutorBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskDecorator;
+
+@Configuration
+public class AsyncConfig {
+  @Bean
+  public TaskDecorator otelTaskDecorator() {
+    return (runnable) -> ContextSnapshot.captureAll(new Object[0]).wrap(runnable);
+  }
+
+  @Bean("asyncExecutorPool1")
+  public Executor asyncExecutorPool1(TaskDecorator otelTaskDecorator) {
+    return new TaskExecutorBuilder()
+        .corePoolSize(5)
+        .maxPoolSize(10)
+        .queueCapacity(10)
+        .threadNamePrefix("threadPoolExecutor1-")
+        .taskDecorator(otelTaskDecorator)
+        .build();
+  }
+
+  @Bean("asyncExecutorPool2")
+  public Executor asyncExecutorPool2(TaskDecorator otelTaskDecorator) {
+    return new TaskExecutorBuilder()
+        .corePoolSize(5)
+        .maxPoolSize(10)
+        .queueCapacity(10)
+        .threadNamePrefix("threadPoolExecutor2-")
+        .taskDecorator(otelTaskDecorator)
+        .build();
+  }
+}
+```
 ## Trying it out on the Application
 
 * First, let's create a customer and a product using Swagger.
