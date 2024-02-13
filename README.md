@@ -322,8 +322,8 @@ import org.springframework.core.task.TaskDecorator;
 public class AsyncConfig {
   @Bean
   public TaskDecorator otelTaskDecorator() {
-    return (runnable) -> return (runnable) -> ContextSnapshotFactory.builder().build()
-                                                .captureAll((new Object[0])).wrap(runnable);
+    return (return runnable -> ContextSnapshotFactory.builder().build()
+                                      .captureAll((new Object[0])).wrap(runnable);
   }
 
   @Bean("asyncExecutorPool1")
