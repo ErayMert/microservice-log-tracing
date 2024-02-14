@@ -322,7 +322,7 @@ import org.springframework.core.task.TaskDecorator;
 public class AsyncConfig {
   @Bean
   public TaskDecorator otelTaskDecorator() {
-    return (return runnable -> ContextSnapshotFactory.builder().build()
+    return runnable -> ContextSnapshotFactory.builder().build()
                                       .captureAll((new Object[0])).wrap(runnable);
   }
 
