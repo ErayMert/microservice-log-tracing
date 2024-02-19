@@ -238,8 +238,8 @@ public class ProducerConfiguration {
 * For the Consumer:
     * Set `factory.getContainerProperties().setObservationEnabled(true);`
     * Set `factory.getContainerProperties().setMicrometerEnabled(true);`
-    * Set `factory.getContainerProperties().setLogContainerConfig(true);`
-    * Set `factory.getContainerProperties().setCommitLogLevel(LogIfLevelEnabled.Level.INFO);`
+    * Set `factory.getContainerProperties().setLogContainerConfig(true);` // Not required
+    * Set `factory.getContainerProperties().setCommitLogLevel(LogIfLevelEnabled.Level.INFO);`  // Not required
 
 ```java
 @Slf4j
@@ -256,7 +256,7 @@ public class KafkaConsumerConfiguration {
 
         factory.getContainerProperties().setObservationEnabled(true);
         factory.getContainerProperties().setMicrometerEnabled(true);
-        factory.getContainerProperties().setLogContainerConfig(true);
+        factory.getContainerProperties().setLogContainerConfig(true); 
         factory.getContainerProperties().setCommitLogLevel(LogIfLevelEnabled.Level.INFO);
         factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(consumerConfigs()));
         return factory;
