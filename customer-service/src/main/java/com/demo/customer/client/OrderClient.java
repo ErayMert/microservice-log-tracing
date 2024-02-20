@@ -13,4 +13,7 @@ public interface OrderClient {
 
     @GetMapping("/orders/{customerId}")
     List<OrderDto> listOrdersByCustomerId(@PathVariable Long customerId);
+
+    @GetMapping("/orders/total-count")
+    Long getTotalOrderCount();
 }

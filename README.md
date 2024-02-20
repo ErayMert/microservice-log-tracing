@@ -200,6 +200,12 @@ logging:
 
 ![trace_span](Images/trace_span.png)
 
+## Micrometer for Schedule
+
+* You must use version of spring boot above 3.2.0
+> https://github.com/spring-projects/spring-boot/issues/36119
+
+
 ## Micrometer Configuration for Kafka
 
 * For the Producer: 

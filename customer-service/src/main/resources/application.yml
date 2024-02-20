@@ -25,7 +25,10 @@ management:
       probability: 1.0
   zipkin:
     tracing:
-      endpoint: "http://localhost:9411/api/v2/spans" # spring boot 3 de uzak sunucu adresini boyle ekliyoruz
+      endpoint: "http://localhost:9411/api/v2/spans"
+
+scheduler:
+  enabled: ${SCHEDULER_ENABLED:true}
 
 logging:
   pattern:

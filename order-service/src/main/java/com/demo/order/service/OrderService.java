@@ -33,4 +33,11 @@ public class OrderService {
         List<Order> orders = orderRepository.findByCustomerId(customerId);
         return orderMapper.ordersToOrderDtoList(orders);
     }
+
+    public Long getTotalCount() {
+
+        log.info("Run get total count method in order service");
+        return orderRepository.count();
+
+    }
 }

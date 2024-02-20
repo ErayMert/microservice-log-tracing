@@ -20,4 +20,9 @@ public class OrderController {
         return orderService.getOrdersByCustomerId(customerId);
     }
 
+    @GetMapping("/total-count")
+    public Long getTotalCount(){
+        return orderService.getTotalCount();
+    }
+
 }

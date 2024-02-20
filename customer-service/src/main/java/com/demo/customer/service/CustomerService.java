@@ -69,4 +69,8 @@ public class CustomerService {
                 .map(OrderDto::getProductId)
                 .toList();
     }
+
+    public Long orderJobInfo() {
+        return orderClient.getTotalOrderCount();
+    }
 }
